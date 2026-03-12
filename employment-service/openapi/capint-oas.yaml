@@ -1,0 +1,105 @@
+openapi: "3.0.3"
+info:
+  title: "CAPInt – Course API Required Interface"
+  description: >
+    Required interface defining the contract any course provider must satisfy.
+    Top-down design: the Employment Service depends on this interface.
+    The concrete MockCourseAPIAdapter uses in-memory data; a production adapter
+    would call an external provider (e.g. Udemy API, Coursera API, FutureLearn).
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+
+  /api/courses:
+    get:
+      summary: Get courses covering specified missing skills
+      operationId: getCourses
+      parameters:
+        - name: skills
+          in: query
+          required: true
+          description: One or more skill names to find courses for
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          example: ["Docker", "Python"]
+      responses:
+        '200':
+          description: Courses returned successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Course'
+              example:
+                - courseId: 301
+                  courseName: "Docker Fundamentals"
+                  provider: "Udemy"
+                  skillCovered: "Docker"
+                  duration: "8 hours"
+
+  /api/courses/{courseId}:
+    get:
+      summary: Get details of a specific course
+      operationId: getCourseDetails
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 301
+      responses:
+        '200':
+          description: Course found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        '404':
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+
+    Course:
+      type: object
+      required: [courseId, courseName, provider, skillCovered]
+      properties:
+        courseId:
+          type: integer
+          example: 301
+        courseName:
+          type: string
+          example: "Docker Fundamentals"
+        provider:
+          type: string
+          example: "Udemy"
+        skillCovered:
+          type: string
+          example: "Docker"
+        duration:
+          type: string
+          example: "8 hours"
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: "Course not found: 999"

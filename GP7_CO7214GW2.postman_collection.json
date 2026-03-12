@@ -1,0 +1,210 @@
+{
+  "info": {
+    "name": "GP7_CO7214GW2 – Employment & Skills Matching Service",
+    "description": "Postman test collection for CO7214 Groupwork 2 – Group 7.\nRun in order: TC-01 must run first to create the user.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "TC-01 Register New Job Seeker (201)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/jobseekers/register", "host": ["{{baseUrl}}"], "path": ["api","jobseekers","register"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"John Smith\",\n  \"email\": \"john@email.com\",\n  \"password\": \"secret99\",\n  \"location\": \"Leicester\"\n}"
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+          "pm.test('userId returned', () => { const json = pm.response.json(); pm.expect(json.userId).to.exist; pm.collectionVariables.set('userId', json.userId); });"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-02 Update Profile (200)",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/jobseekers/{{userId}}/profile", "host": ["{{baseUrl}}"], "path": ["api","jobseekers","{{userId}}","profile"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"skills\": [\"Java\", \"SQL\"],\n  \"preferences\": \"Backend roles\",\n  \"location\": \"Leicester\"\n}"
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+          "pm.test('Skills saved', () => { const json = pm.response.json(); pm.expect(json.skills).to.include('Java'); });"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-03 Duplicate Email (409)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/jobseekers/register", "host": ["{{baseUrl}}"], "path": ["api","jobseekers","register"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"John Smith\",\n  \"email\": \"john@email.com\",\n  \"password\": \"secret99\",\n  \"location\": \"Leicester\"\n}"
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 409 Conflict', () => pm.response.to.have.status(409));"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-04 Invalid Email Format (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/jobseekers/register", "host": ["{{baseUrl}}"], "path": ["api","jobseekers","register"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"not-an-email\",\n  \"password\": \"secret99\",\n  \"location\": \"Leicester\"\n}"
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-05 Match Jobs for User (200)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/jobseekers/{{userId}}/match", "host": ["{{baseUrl}}"], "path": ["api","jobseekers","{{userId}}","match"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+          "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+          "pm.test('Has matchScore', () => pm.expect(pm.response.json()[0].matchScore).to.exist);"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-06 Match without Profile (404)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/jobseekers/99/match", "host": ["{{baseUrl}}"], "path": ["api","jobseekers","99","match"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 404 Not Found', () => pm.response.to.have.status(404));"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-07 Search Jobs by Location (200)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/jobs?location=Leicester&keyword=Java",
+          "host": ["{{baseUrl}}"], "path": ["api","jobs"],
+          "query": [
+            { "key": "location", "value": "Leicester" },
+            { "key": "keyword", "value": "Java" }
+          ]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+          "pm.test('Jobs returned', () => pm.expect(pm.response.json().length).to.be.greaterThan(0));"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-08 Non-existent Job (404)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/jobs/999", "host": ["{{baseUrl}}"], "path": ["api","jobs","999"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 404', () => pm.response.to.have.status(404));"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-09 Get Courses for Skills (200)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/courses?skills=Docker&skills=Python",
+          "host": ["{{baseUrl}}"], "path": ["api","courses"],
+          "query": [
+            { "key": "skills", "value": "Docker" },
+            { "key": "skills", "value": "Python" }
+          ]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+          "pm.test('Returns courses', () => pm.expect(pm.response.json().length).to.be.greaterThan(0));"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-10 Get Course Details (200)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/courses/301", "host": ["{{baseUrl}}"], "path": ["api","courses","301"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+          "pm.test('Correct course', () => pm.expect(pm.response.json().courseName).to.eql('Docker Fundamentals'));"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-11 Get Job Seeker by ID (200)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/jobseekers/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","jobseekers","{{userId}}"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+          "pm.test('Correct user', () => pm.expect(pm.response.json().email).to.eql('john@email.com'));"
+        ], "type": "text/javascript" }
+      }]
+    },
+    {
+      "name": "TC-12 Get Non-existent User (404)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/jobseekers/999", "host": ["{{baseUrl}}"], "path": ["api","jobseekers","999"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status is 404', () => pm.response.to.have.status(404));"
+        ], "type": "text/javascript" }
+      }]
+    }
+  ]
+}

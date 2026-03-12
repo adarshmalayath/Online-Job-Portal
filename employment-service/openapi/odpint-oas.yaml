@@ -1,0 +1,113 @@
+openapi: "3.0.3"
+info:
+  title: "ODPInt – Open Data Portal Required Interface"
+  description: >
+    Required interface defining the contract that any job-data provider must satisfy.
+    This is the *top-down* interface our application depends on.
+    The concrete adapter (MockODPAdapter) implements this contract using in-memory data;
+    in production it maps the response of an external API (e.g. data.gov.uk) to this schema.
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server (adapter embedded in app)
+
+paths:
+
+  /api/jobs:
+    get:
+      summary: Fetch job postings
+      description: >
+        **Pre-conditions:** at least one of location or keyword must be provided.
+        **Post-conditions:** returns job postings containing title, location, and requiredSkills.
+      operationId: getJobPostings
+      parameters:
+        - name: location
+          in: query
+          required: false
+          description: City or region filter, e.g. "Leicester"
+          schema:
+            type: string
+            example: "Leicester"
+        - name: keyword
+          in: query
+          required: false
+          description: Keyword to match against job title or required skills
+          schema:
+            type: string
+            example: "Java"
+      responses:
+        '200':
+          description: List of matching job postings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+              example:
+                - jobId: 101
+                  title: "Backend Developer"
+                  company: "Tech Ltd"
+                  location: "Leicester"
+                  requiredSkills: ["Java", "Spring", "Docker"]
+
+  /api/jobs/{jobId}:
+    get:
+      summary: Get job details by ID
+      operationId: getJobDetails
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 101
+      responses:
+        '200':
+          description: Job found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+
+    Job:
+      type: object
+      required: [jobId, title, company, location, requiredSkills]
+      properties:
+        jobId:
+          type: integer
+          example: 101
+        title:
+          type: string
+          example: "Backend Developer"
+        company:
+          type: string
+          example: "Tech Ltd"
+        location:
+          type: string
+          example: "Leicester"
+        requiredSkills:
+          type: array
+          items:
+            type: string
+          example: ["Java", "Spring", "Docker"]
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: "Job not found: 999"

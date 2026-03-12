@@ -1,0 +1,320 @@
+openapi: "3.0.3"
+info:
+  title: "ReqInt – Employment & Skills Matching Service (User-facing)"
+  description: >
+    Required interface exposed to Job Seekers.
+    Covers user registration, profile management, job search, and match + course recommendations.
+    This is the primary interface of the Employment & Skills Matching Service (top-down design).
+  version: "1.0.0"
+  contact:
+    name: "Group 7 – CO7214 SOA"
+    email: "gsk16@student.le.ac.uk"
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Registration
+    description: User account creation
+  - name: Profile
+    description: Manage job seeker profile
+  - name: Matching
+    description: Match jobs and recommend courses
+
+paths:
+
+  /api/jobseekers/register:
+    post:
+      tags: [Registration]
+      summary: Register a new job seeker
+      description: >
+        **Pre-conditions:** email not already registered; password ≥ 8 characters.
+        **Post-conditions:** account created; user stored in system.
+      operationId: registerJobSeeker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              name: "John Smith"
+              email: "john@email.com"
+              password: "secret99"
+              location: "Leicester"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobSeeker'
+        '400':
+          description: Validation error (missing fields or invalid email)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/jobseekers/{userId}:
+    get:
+      tags: [Registration]
+      summary: Get a job seeker by ID
+      operationId: getJobSeeker
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Job seeker found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobSeeker'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/jobseekers/{userId}/profile:
+    put:
+      tags: [Profile]
+      summary: Create or update job seeker profile
+      description: >
+        **Pre-conditions:** userId exists; skills list not empty; location valid.
+        **Post-conditions:** profile saved/updated; profile becomes usable for job matching.
+      operationId: updateProfile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileRequest'
+            example:
+              skills: ["Java", "SQL"]
+              preferences: "Backend roles"
+              location: "Leicester"
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          description: Validation error
+        '404':
+          description: User not found
+
+    get:
+      tags: [Profile]
+      summary: Retrieve the profile of a job seeker
+      operationId: getProfile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '404':
+          description: Profile or user not found
+
+  /api/jobseekers/{userId}/match:
+    get:
+      tags: [Matching]
+      summary: Match jobs and recommend courses for a user
+      description: >
+        **Pre-conditions:** profile exists for userId.
+        **Post-conditions:** ranked list of jobs with match scores, missing skills, and recommended courses.
+      operationId: matchJobs
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Match results returned (sorted by score descending)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchResult'
+        '404':
+          description: User or profile not found
+
+components:
+  schemas:
+
+    RegisterRequest:
+      type: object
+      required: [name, email, password, location]
+      properties:
+        name:
+          type: string
+          example: "John Smith"
+        email:
+          type: string
+          format: email
+          example: "john@email.com"
+        password:
+          type: string
+          minLength: 8
+          example: "secret99"
+        location:
+          type: string
+          example: "Leicester"
+
+    ProfileRequest:
+      type: object
+      required: [skills, location]
+      properties:
+        skills:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          example: ["Java", "SQL"]
+        preferences:
+          type: string
+          example: "Backend roles"
+        location:
+          type: string
+          example: "Leicester"
+
+    JobSeeker:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "John Smith"
+        email:
+          type: string
+          example: "john@email.com"
+        location:
+          type: string
+          example: "Leicester"
+
+    Profile:
+      type: object
+      properties:
+        profileId:
+          type: integer
+          format: int64
+          example: 1
+        skills:
+          type: array
+          items:
+            type: string
+          example: ["Java", "SQL"]
+        preferences:
+          type: string
+          example: "Backend roles"
+
+    MatchResult:
+      type: object
+      properties:
+        matchScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 67
+        missingSkills:
+          type: array
+          items:
+            type: string
+          example: ["Docker"]
+        job:
+          $ref: '#/components/schemas/Job'
+        recommendedCourses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Course'
+
+    Job:
+      type: object
+      properties:
+        jobId:
+          type: integer
+          example: 101
+        title:
+          type: string
+          example: "Backend Developer"
+        company:
+          type: string
+          example: "Tech Ltd"
+        location:
+          type: string
+          example: "Leicester"
+        requiredSkills:
+          type: array
+          items:
+            type: string
+          example: ["Java", "Spring", "Docker"]
+
+    Course:
+      type: object
+      properties:
+        courseId:
+          type: integer
+          example: 301
+        courseName:
+          type: string
+          example: "Docker Fundamentals"
+        provider:
+          type: string
+          example: "Udemy"
+        skillCovered:
+          type: string
+          example: "Docker"
+        duration:
+          type: string
+          example: "8 hours"
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 409
+        message:
+          type: string
+          example: "Email already registered"
+        timestamp:
+          type: string
+          format: date-time
