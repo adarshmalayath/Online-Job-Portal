@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host --port 5173",
     "build": "vite build",
-    "postbuild": "cp dist/index.html dist/404.html",
+    "postbuild": "cp dist/index.html dist/404.html && mkdir -p dist/register dist/login dist/dashboard dist/profile && cp dist/index.html dist/register/index.html && cp dist/index.html dist/login/index.html && cp dist/index.html dist/dashboard/index.html && cp dist/index.html dist/profile/index.html",
     "preview": "vite preview --port 4173"
   },
   "dependencies": {
