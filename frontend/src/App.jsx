@@ -1,5 +1,4 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -9,16 +8,38 @@ import { getCurrentUser } from "./lib/auth";
 
 function EntryRedirect() {
   const user = getCurrentUser();
-  return <Navigate to={user ? "/dashboard" : "/login"} replace />;
+  return <Navigate to={user ? "/dashboard" : "/register"} replace />;
+}
+
+function GuestOnly({ children }) {
+  const user = getCurrentUser();
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<EntryRedirect />} />
       <Route path="/start" element={<EntryRedirect />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/register"
+        element={
+          <GuestOnly>
+            <RegisterPage />
+          </GuestOnly>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <GuestOnly>
+            <LoginPage />
+          </GuestOnly>
+        }
+      />
       <Route
         path="/dashboard"
         element={
@@ -35,7 +56,7 @@ export default function App() {
           </RequireAuth>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<EntryRedirect />} />
     </Routes>
   );
 }

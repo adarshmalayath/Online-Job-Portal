@@ -46,7 +46,19 @@ export default function RegisterPage() {
         navigate("/login", { replace: true });
       }, 800);
     } catch (err) {
-      setError(err.message);
+      const message = String(err.message || "");
+      const duplicateAccount =
+        message.toLowerCase().includes("already registered") ||
+        message.toLowerCase().includes("conflict");
+
+      if (duplicateAccount) {
+        setError("Account already exists. Redirecting to login...");
+        window.setTimeout(() => {
+          navigate("/login", { replace: true });
+        }, 1200);
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
